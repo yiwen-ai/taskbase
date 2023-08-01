@@ -16,7 +16,8 @@ pub struct Task {
     pub updated_at: i64,
     pub duedate: i64,
     pub threshold: i16,
-    pub receivers: HashSet<xid::Id>,
+    pub approvers: HashSet<xid::Id>,
+    pub assignees: HashSet<xid::Id>,
     pub resolved: HashSet<xid::Id>,
     pub rejected: HashSet<xid::Id>,
     pub message: String,
@@ -185,7 +186,7 @@ impl Task {
         Ok(true)
     }
 
-    pub async fn update_receivers(
+    pub async fn update_assignees(
         &mut self,
         db: &scylladb::ScyllaDB,
         remove: Vec<xid::Id>,
@@ -209,7 +210,7 @@ impl Task {
         if !remove.is_empty() {
             let mut params: Vec<CqlValue> = Vec::with_capacity(remove.len() + 4);
             let query = format!(
-                "UPDATE task SET receivers=receivers-{{ {} }}, updated_at=? WHERE uid=? AND id=? IF updated_at=?",
+                "UPDATE task SET assignees=assignees-{{ {} }}, updated_at=? WHERE uid=? AND id=? IF updated_at=?",
                 remove.iter().map(|_| "?").collect::<Vec<&str>>().join(",")
             );
 
@@ -235,7 +236,7 @@ impl Task {
         if !add.is_empty() {
             let mut params: Vec<CqlValue> = Vec::with_capacity(add.len() + 4);
             let query = format!(
-                "UPDATE task SET receivers=receivers+{{ {} }}, updated_at=? WHERE uid=? AND id=? IF updated_at=?",
+                "UPDATE task SET assignees=assignees+{{ {} }}, updated_at=? WHERE uid=? AND id=? IF updated_at=?",
                 add.iter().map(|_| "?").collect::<Vec<&str>>().join(",")
             );
 
@@ -263,12 +264,19 @@ impl Task {
     pub async fn update_resolved(
         &mut self,
         db: &scylladb::ScyllaDB,
-        receiver: xid::Id,
+        assignee: xid::Id,
     ) -> anyhow::Result<bool> {
+        self.get_one(db, vec!["approvers".to_string(), "assignees".to_string()])
+            .await?;
+
+        if (!self.approvers.is_empty() || !self.assignees.is_empty()) && !self.approvers.contains(&assignee) && !self.assignees.contains(&assignee) {
+            return Err(HTTPError::new(403, "can not resolve task".to_string()).into());
+        }
+
         let query = "UPDATE task SET rejected=rejected-{?}, resolved=resolved+{?} WHERE uid=? AND id=? IF EXISTS";
         let params = (
-            receiver.to_cql(),
-            receiver.to_cql(),
+            assignee.to_cql(),
+            assignee.to_cql(),
             self.uid.to_cql(),
             self.id.to_cql(),
         );
@@ -291,7 +299,10 @@ impl Task {
             ],
         )
         .await?;
+
+        let can_approve = self.approvers.is_empty() || self.approvers.contains(&assignee);
         if self.status != 1
+            && can_approve
             && self.resolved.len() >= self.threshold as usize
             && self.resolved.len() > self.rejected.len()
         {
@@ -312,12 +323,16 @@ impl Task {
     pub async fn update_rejected(
         &mut self,
         db: &scylladb::ScyllaDB,
-        receiver: xid::Id,
+        assignee: xid::Id,
     ) -> anyhow::Result<bool> {
+        if (!self.approvers.is_empty() || !self.assignees.is_empty()) && !self.approvers.contains(&assignee) && !self.assignees.contains(&assignee) {
+            return Err(HTTPError::new(403, "can not reject task".to_string()).into());
+        }
+
         let query = "UPDATE task SET resolved=resolved-{?}, rejected=rejected+{?} WHERE uid=? AND id=? IF EXISTS";
         let params = (
-            receiver.to_cql(),
-            receiver.to_cql(),
+            assignee.to_cql(),
+            assignee.to_cql(),
             self.uid.to_cql(),
             self.id.to_cql(),
         );
@@ -340,7 +355,10 @@ impl Task {
             ],
         )
         .await?;
+
+        let can_approve = self.approvers.is_empty() || self.approvers.contains(&assignee);
         if self.status != -1
+            && can_approve
             && self.rejected.len() >= self.threshold as usize
             && self.rejected.len() > self.resolved.len()
         {

@@ -28,7 +28,9 @@ pub struct NotificationOutput {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub threshold: Option<i16>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub receivers: Option<Vec<PackObject<xid::Id>>>,
+    pub approvers: Option<Vec<PackObject<xid::Id>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assignees: Option<Vec<PackObject<xid::Id>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolved: Option<Vec<PackObject<xid::Id>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -57,9 +59,17 @@ impl NotificationOutput {
                 "updated_at" => rt.updated_at = Some(val.updated_at),
                 "duedate" => rt.duedate = Some(val.duedate),
                 "threshold" => rt.threshold = Some(val.threshold),
-                "receivers" => {
-                    rt.receivers = Some(
-                        val.receivers
+                "approvers" => {
+                    rt.approvers = Some(
+                        val.approvers
+                            .iter()
+                            .map(|id| to.with(id.to_owned()))
+                            .collect(),
+                    )
+                }
+                "assignees" => {
+                    rt.assignees = Some(
+                        val.assignees
                             .iter()
                             .map(|id| to.with(id.to_owned()))
                             .collect(),

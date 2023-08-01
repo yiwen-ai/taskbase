@@ -30,7 +30,9 @@ pub struct TaskOutput {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub threshold: Option<i16>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub receivers: Option<Vec<PackObject<xid::Id>>>,
+    pub approvers: Option<Vec<PackObject<xid::Id>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub assignees: Option<Vec<PackObject<xid::Id>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub resolved: Option<Vec<PackObject<xid::Id>>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -58,9 +60,17 @@ impl TaskOutput {
                 "updated_at" => rt.updated_at = Some(val.updated_at),
                 "duedate" => rt.duedate = Some(val.duedate),
                 "threshold" => rt.threshold = Some(val.threshold),
-                "receivers" => {
-                    rt.receivers = Some(
-                        val.receivers
+                "approvers" => {
+                    rt.approvers = Some(
+                        val.approvers
+                            .iter()
+                            .map(|id| to.with(id.to_owned()))
+                            .collect(),
+                    )
+                }
+                "assignees" => {
+                    rt.assignees = Some(
+                        val.assignees
                             .iter()
                             .map(|id| to.with(id.to_owned()))
                             .collect(),
@@ -127,8 +137,10 @@ pub struct CreateTaskInput {
     pub kind: String,
     #[validate(range(min = 0, max = 256))]
     pub threshold: i16,
+    #[validate(length(min = 0, max = 4))]
+    pub approvers: Vec<PackObject<xid::Id>>,
     #[validate(length(min = 0, max = 256))]
-    pub receivers: Vec<PackObject<xid::Id>>,
+    pub assignees: Vec<PackObject<xid::Id>>,
     pub message: String,
     pub payload: PackObject<Vec<u8>>,
     #[validate(range(min = -1, max = 2))]
@@ -158,7 +170,8 @@ pub async fn create(
     doc.created_at = unix_ms() as i64;
     doc.updated_at = doc.created_at;
     doc.threshold = input.threshold;
-    doc.receivers = input.receivers.into_iter().map(|id| id.unwrap()).collect();
+    doc.approvers = input.approvers.into_iter().map(|id| id.unwrap()).collect();
+    doc.assignees = input.assignees.into_iter().map(|id| id.unwrap()).collect();
     doc.resolved = HashSet::new();
     doc.rejected = HashSet::new();
     doc.message = input.message;
@@ -171,8 +184,14 @@ pub async fn create(
         notif.role = role;
         let _ = notif.save(&app.scylla).await;
     }
-    if !doc.receivers.is_empty() {
-        for id in &doc.receivers {
+    if !doc.approvers.is_empty() {
+        for id in &doc.approvers {
+            let mut notif = db::Notification::with_pk(*id, doc.id, doc.uid);
+            let _ = notif.save(&app.scylla).await;
+        }
+    }
+    if !doc.assignees.is_empty() {
+        for id in &doc.assignees {
             let mut notif = db::Notification::with_pk(*id, doc.id, doc.uid);
             let _ = notif.save(&app.scylla).await;
         }
@@ -274,7 +293,7 @@ pub async fn delete(
     doc.delete(&app.scylla).await?;
     let mut notify = db::GroupNotification::with_pk(doc.gid, doc.id, doc.uid);
     let _ = notify.delete(&app.scylla).await;
-    let _ = db::Notification::batch_delete_by_tid(&app.scylla, doc.id).await?;
+    db::Notification::batch_delete_by_tid(&app.scylla, doc.id).await?;
 
     Ok(to.with(SuccessResponse::new(true)))
 }

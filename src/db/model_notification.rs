@@ -242,8 +242,8 @@ impl Notification {
 
     pub async fn batch_delete_by_tid(db: &scylladb::ScyllaDB, tid: xid::Id) -> anyhow::Result<()> {
         let query = scylladb::Query::new("SELECT uid,tid,sender FROM notification WHERE tid=? LIMIT ? BYPASS CACHE USING TIMEOUT 3s")
-            .with_page_size(1000 as i32);
-        let params = (tid.to_cql(), 1000 as i32);
+            .with_page_size(1000_i32);
+        let params = (tid.to_cql(), 1000_i32);
         let fields = vec!["uid".to_string(), "tid".to_string(), "sender".to_string()];
 
         loop {

@@ -7,10 +7,11 @@ CREATE TABLE IF NOT EXISTS task (
     created_at BIGINT,    -- create at
     updated_at BIGINT,    -- update at
     duedate    BIGINT,    -- due date
-    threshold  SMALLINT,   -- threshold, default 1
-    receivers  SET<BLOB>, -- receivers
-    resolved   SET<BLOB>, -- who approved task from receivers
-    rejected   SET<BLOB>, -- who rejected task from receivers
+    threshold  SMALLINT,  -- threshold, default 1
+    approvers  SET<BLOB>, -- approvers
+    assignees  SET<BLOB>, -- assignees
+    resolved   SET<BLOB>, -- who approved task from assignees
+    rejected   SET<BLOB>, -- who rejected task from assignees
     message    TEXT,      -- additional message
     payload    BLOB,      -- task detail in CBOR format
     PRIMARY KEY (uid, id)
@@ -38,7 +39,7 @@ CREATE TABLE IF NOT EXISTS notification (
     AND default_time_to_live = 0;
 
 CREATE INDEX notification_uid_status ON notification ((uid), status);
-CREATE INDEX notification_uid_tid ON notification (tid);
+CREATE INDEX notification_tid ON notification (tid);
 
 CREATE TABLE IF NOT EXISTS group_notification (
     gid    BLOB,    -- group id, who receive task
