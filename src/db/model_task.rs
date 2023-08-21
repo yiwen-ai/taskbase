@@ -269,7 +269,10 @@ impl Task {
         self.get_one(db, vec!["approvers".to_string(), "assignees".to_string()])
             .await?;
 
-        if (!self.approvers.is_empty() || !self.assignees.is_empty()) && !self.approvers.contains(&assignee) && !self.assignees.contains(&assignee) {
+        if (!self.approvers.is_empty() || !self.assignees.is_empty())
+            && !self.approvers.contains(&assignee)
+            && !self.assignees.contains(&assignee)
+        {
             return Err(HTTPError::new(403, "can not resolve task".to_string()).into());
         }
 
@@ -325,7 +328,10 @@ impl Task {
         db: &scylladb::ScyllaDB,
         assignee: xid::Id,
     ) -> anyhow::Result<bool> {
-        if (!self.approvers.is_empty() || !self.assignees.is_empty()) && !self.approvers.contains(&assignee) && !self.assignees.contains(&assignee) {
+        if (!self.approvers.is_empty() || !self.assignees.is_empty())
+            && !self.approvers.contains(&assignee)
+            && !self.assignees.contains(&assignee)
+        {
             return Err(HTTPError::new(403, "can not reject task".to_string()).into());
         }
 
@@ -421,34 +427,31 @@ impl Task {
 
         let rows = if let Some(id) = page_token {
             if status.is_none() {
-                let query = scylladb::Query::new(format!(
+                let query = format!(
                     "SELECT {} FROM task WHERE uid=? AND id<? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
                     fields.clone().join(",")
-                ))
-                .with_page_size(page_size as i32);
+                );
                 let params = (uid.to_cql(), id.to_cql(), page_size as i32);
-                db.execute_paged(query, params, None).await?
+                db.execute_iter(query, params).await?
             } else {
-                let query = scylladb::Query::new(format!(
+                let query = format!(
                     "SELECT {} FROM task WHERE uid=? AND status=? AND id<? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
-                    fields.clone().join(","))).with_page_size(page_size as i32);
+                    fields.clone().join(","));
                 let params = (uid.to_cql(), id.to_cql(), status.unwrap(), page_size as i32);
-                db.execute_paged(query, params, None).await?
+                db.execute_iter(query, params).await?
             }
         } else if status.is_none() {
-            let query = scylladb::Query::new(format!(
+            let query = format!(
                 "SELECT {} FROM task WHERE uid=? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
                 fields.clone().join(",")
-            ))
-            .with_page_size(page_size as i32);
+            );
             let params = (uid.to_cql(), page_size as i32);
             db.execute_iter(query, params).await?
         } else {
-            let query = scylladb::Query::new(format!(
+            let query = format!(
                 "SELECT {} FROM task WHERE uid=? AND status=? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
                 fields.clone().join(",")
-            ))
-            .with_page_size(page_size as i32);
+            );
             let params = (uid.as_bytes(), status.unwrap(), page_size as i32);
             db.execute_iter(query, params).await?
         };

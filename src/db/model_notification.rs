@@ -105,34 +105,31 @@ impl GroupNotification {
 
         let rows = if let Some(tid) = page_token {
             if role.is_none() {
-                let query = scylladb::Query::new(format!(
+                let query = format!(
                     "SELECT {} FROM group_notification WHERE gid=? AND tid<? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
                     fields.clone().join(",")
-                ))
-                .with_page_size(page_size as i32);
+                );
                 let params = (gid.to_cql(), tid.to_cql(), page_size as i32);
-                db.execute_paged(query, params, None).await?
+                db.execute_iter(query, params).await?
             } else {
-                let query = scylladb::Query::new(format!(
+                let query = format!(
                     "SELECT {} FROM group_notification WHERE gid=? AND role=? AND tid<? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
-                    fields.clone().join(","))).with_page_size(page_size as i32);
+                    fields.clone().join(","));
                 let params = (gid.to_cql(), tid.to_cql(), role.unwrap(), page_size as i32);
-                db.execute_paged(query, params, None).await?
+                db.execute_iter(query, params).await?
             }
         } else if role.is_none() {
-            let query = scylladb::Query::new(format!(
+            let query = format!(
                 "SELECT {} FROM group_notification WHERE gid=? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
                 fields.clone().join(",")
-            ))
-            .with_page_size(page_size as i32);
+            );
             let params = (gid.to_cql(), page_size as i32);
             db.execute_iter(query, params).await?
         } else {
-            let query = scylladb::Query::new(format!(
+            let query = format!(
                 "SELECT {} FROM group_notification WHERE gid=? AND role=? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
                 fields.clone().join(",")
-            ))
-            .with_page_size(page_size as i32);
+            );
             let params = (gid.as_bytes(), role.unwrap(), page_size as i32);
             db.execute_iter(query, params).await?
         };
@@ -241,8 +238,7 @@ impl Notification {
     }
 
     pub async fn batch_delete_by_tid(db: &scylladb::ScyllaDB, tid: xid::Id) -> anyhow::Result<()> {
-        let query = scylladb::Query::new("SELECT uid,tid,sender FROM notification WHERE tid=? LIMIT ? BYPASS CACHE USING TIMEOUT 3s")
-            .with_page_size(1000_i32);
+        let query = "SELECT uid,tid,sender FROM notification WHERE tid=? LIMIT ? BYPASS CACHE USING TIMEOUT 3s";
         let params = (tid.to_cql(), 1000_i32);
         let fields = vec!["uid".to_string(), "tid".to_string(), "sender".to_string()];
 
@@ -296,39 +292,36 @@ impl Notification {
 
         let rows = if let Some(tid) = page_token {
             if status.is_none() {
-                let query = scylladb::Query::new(format!(
+                let query = format!(
                     "SELECT {} FROM notification WHERE uid=? AND tid<? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
                     fields.clone().join(",")
-                ))
-                .with_page_size(page_size as i32);
+                );
                 let params = (uid.to_cql(), tid.to_cql(), page_size as i32);
-                db.execute_paged(query, params, None).await?
+                db.execute_iter(query, params).await?
             } else {
-                let query = scylladb::Query::new(format!(
+                let query = format!(
                     "SELECT {} FROM notification WHERE uid=? AND status=? AND tid<? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
-                    fields.clone().join(","))).with_page_size(page_size as i32);
+                    fields.clone().join(","));
                 let params = (
                     uid.to_cql(),
                     tid.to_cql(),
                     status.unwrap(),
                     page_size as i32,
                 );
-                db.execute_paged(query, params, None).await?
+                db.execute_iter(query, params).await?
             }
         } else if status.is_none() {
-            let query = scylladb::Query::new(format!(
+            let query = format!(
                 "SELECT {} FROM notification WHERE uid=? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
                 fields.clone().join(",")
-            ))
-            .with_page_size(page_size as i32);
+            );
             let params = (uid.to_cql(), page_size as i32);
             db.execute_iter(query, params).await?
         } else {
-            let query = scylladb::Query::new(format!(
+            let query = format!(
                 "SELECT {} FROM notification WHERE uid=? AND status=? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
                 fields.clone().join(",")
-            ))
-            .with_page_size(page_size as i32);
+            );
             let params = (uid.as_bytes(), status.unwrap(), page_size as i32);
             db.execute_iter(query, params).await?
         };
