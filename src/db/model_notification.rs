@@ -106,28 +106,28 @@ impl GroupNotification {
         let rows = if let Some(tid) = page_token {
             if role.is_none() {
                 let query = format!(
-                    "SELECT {} FROM group_notification WHERE gid=? AND tid<? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
+                    "SELECT {} FROM group_notification WHERE gid=? AND tid<? LIMIT ? USING TIMEOUT 3s",
                     fields.clone().join(",")
                 );
                 let params = (gid.to_cql(), tid.to_cql(), page_size as i32);
                 db.execute_iter(query, params).await?
             } else {
                 let query = format!(
-                    "SELECT {} FROM group_notification WHERE gid=? AND role=? AND tid<? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
+                    "SELECT {} FROM group_notification WHERE gid=? AND role=? AND tid<? LIMIT ? USING TIMEOUT 3s",
                     fields.clone().join(","));
                 let params = (gid.to_cql(), tid.to_cql(), role.unwrap(), page_size as i32);
                 db.execute_iter(query, params).await?
             }
         } else if role.is_none() {
             let query = format!(
-                "SELECT {} FROM group_notification WHERE gid=? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
+                "SELECT {} FROM group_notification WHERE gid=? LIMIT ? USING TIMEOUT 3s",
                 fields.clone().join(",")
             );
             let params = (gid.to_cql(), page_size as i32);
             db.execute_iter(query, params).await?
         } else {
             let query = format!(
-                "SELECT {} FROM group_notification WHERE gid=? AND role=? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
+                "SELECT {} FROM group_notification WHERE gid=? AND role=? LIMIT ? USING TIMEOUT 3s",
                 fields.clone().join(",")
             );
             let params = (gid.as_bytes(), role.unwrap(), page_size as i32);
@@ -293,14 +293,14 @@ impl Notification {
         let rows = if let Some(tid) = page_token {
             if status.is_none() {
                 let query = format!(
-                    "SELECT {} FROM notification WHERE uid=? AND tid<? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
+                    "SELECT {} FROM notification WHERE uid=? AND tid<? LIMIT ? USING TIMEOUT 3s",
                     fields.clone().join(",")
                 );
                 let params = (uid.to_cql(), tid.to_cql(), page_size as i32);
                 db.execute_iter(query, params).await?
             } else {
                 let query = format!(
-                    "SELECT {} FROM notification WHERE uid=? AND status=? AND tid<? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
+                    "SELECT {} FROM notification WHERE uid=? AND status=? AND tid<? LIMIT ? USING TIMEOUT 3s",
                     fields.clone().join(","));
                 let params = (
                     uid.to_cql(),
@@ -312,14 +312,14 @@ impl Notification {
             }
         } else if status.is_none() {
             let query = format!(
-                "SELECT {} FROM notification WHERE uid=? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
+                "SELECT {} FROM notification WHERE uid=? LIMIT ? USING TIMEOUT 3s",
                 fields.clone().join(",")
             );
             let params = (uid.to_cql(), page_size as i32);
             db.execute_iter(query, params).await?
         } else {
             let query = format!(
-                "SELECT {} FROM notification WHERE uid=? AND status=? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
+                "SELECT {} FROM notification WHERE uid=? AND status=? LIMIT ? USING TIMEOUT 3s",
                 fields.clone().join(",")
             );
             let params = (uid.as_bytes(), status.unwrap(), page_size as i32);

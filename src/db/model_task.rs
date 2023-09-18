@@ -428,28 +428,28 @@ impl Task {
         let rows = if let Some(id) = page_token {
             if status.is_none() {
                 let query = format!(
-                    "SELECT {} FROM task WHERE uid=? AND id<? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
+                    "SELECT {} FROM task WHERE uid=? AND id<? LIMIT ? USING TIMEOUT 3s",
                     fields.clone().join(",")
                 );
                 let params = (uid.to_cql(), id.to_cql(), page_size as i32);
                 db.execute_iter(query, params).await?
             } else {
                 let query = format!(
-                    "SELECT {} FROM task WHERE uid=? AND status=? AND id<? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
+                    "SELECT {} FROM task WHERE uid=? AND status=? AND id<? LIMIT ? USING TIMEOUT 3s",
                     fields.clone().join(","));
                 let params = (uid.to_cql(), id.to_cql(), status.unwrap(), page_size as i32);
                 db.execute_iter(query, params).await?
             }
         } else if status.is_none() {
             let query = format!(
-                "SELECT {} FROM task WHERE uid=? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
+                "SELECT {} FROM task WHERE uid=? LIMIT ? USING TIMEOUT 3s",
                 fields.clone().join(",")
             );
             let params = (uid.to_cql(), page_size as i32);
             db.execute_iter(query, params).await?
         } else {
             let query = format!(
-                "SELECT {} FROM task WHERE uid=? AND status=? LIMIT ? BYPASS CACHE USING TIMEOUT 3s",
+                "SELECT {} FROM task WHERE uid=? AND status=? LIMIT ? USING TIMEOUT 3s",
                 fields.clone().join(",")
             );
             let params = (uid.as_bytes(), status.unwrap(), page_size as i32);
